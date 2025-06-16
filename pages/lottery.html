@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
     <title>CryptoLotto - Buy Tickets</title>
     <style>
         * {
@@ -604,7 +605,7 @@
             <div class="ticket-tiers">
                 <div class="tier-option selected" data-tier="bronze" data-price="0.01">
                     <div class="tier-name">🥉 Bronze Ticket</div>
-                    <div class="tier-price">0.01 ETH</div>
+                    <div class="tier-price">0.000 ETH</div>
                     <div class="tier-odds">Standard odds</div>
                 </div>
                 <div class="tier-option" data-tier="silver" data-price="0.05">
@@ -701,18 +702,74 @@
     <script>
         // Global variables
         let selectedTier = 'bronze';
-        let selectedPrice = 0.01;
+        let selectedPrice = 0.000;
         let ticketQuantity = 1;
         let userTickets = [];
 
+        // Add these global variables at the top of your script section
+let web3;
+let userAccount;
+
+// Add this function to initialize Web3
+async function initWeb3() {
+    if (typeof window.ethereum !== 'undefined') {
+        web3 = new Web3(window.ethereum);
+        return true;
+    }
+    return false;
+}
+
+// Add this function to check wallet connection
+async function checkWalletConnection() {
+    if (!web3) {
+        showNotification('Please connect your wallet first!', 'error');
+        return false;
+    }
+
+    const accounts = await web3.eth.getAccounts();
+    if (accounts.length === 0) {
+        try {
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            return true;
+        } catch (error) {
+            showNotification('Please connect your wallet!', 'error');
+            return false;
+        }
+    }
+    return true;
+}
+
+// Add this function to check balance
+async function checkBalance(requiredAmount) {
+    try {
+        const accounts = await web3.eth.getAccounts();
+        const balance = await web3.eth.getBalance(accounts[0]);
+        const balanceInEth = web3.utils.fromWei(balance, 'ether');
+        
+        if (parseFloat(balanceInEth) < requiredAmount) {
+            showNotification(`Insufficient balance. You need ${requiredAmount} ETH!`, 'error');
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error('Error checking balance:', error);
+        showNotification('Error checking balance!', 'error');
+        return false;
+    }
+}
+
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            initializePage();
-            setupEventListeners();
-            updateCountdown();
-            setInterval(updateCountdown, 1000);
-            setInterval(updateStats, 10000);
-        });
+        document.addEventListener('DOMContentLoaded', async function() {
+    // Initialize Web3
+    await initWeb3();
+    
+    // Rest of your initialization code...
+    initializePage();
+    setupEventListeners();
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+    setInterval(updateStats, 10000);
+});
 
         function initializePage() {
             updateTotalCost();
@@ -830,50 +887,86 @@
         }
 
         async function buyTickets() {
-            const button = document.getElementById('buyTickets');
-            const originalText = button.textContent;
-            
-            // Show loading state
-            button.innerHTML = '<span class="loading"></span> Processing...';
-            button.disabled = true;
-            
-            try {
-                // Simulate blockchain transaction
-                await new Promise(resolve => setTimeout(resolve, 3000));
-                
-                // Add tickets to user's collection
-                for (let i = 0; i < ticketQuantity; i++) {
-                    const ticketId = generateTicketId();
-                    userTickets.push({
-                        id: ticketId,
-                        tier: selectedTier,
-                        price: selectedPrice
-                    });
-                }
-                
-                // Update UI
-                loadUserTickets();
-                
-                // Show success modal
-                document.getElementById('txHash').textContent = `Tx: ${generateTxHash()}`;
-                document.getElementById('successModal').style.display = 'block';
-                
-                // Show notification
-                showNotification('Tickets purchased successfully! 🎉', 'success');
-                
-                // Reset form
-                document.getElementById('ticketQuantity').value = 1;
-                ticketQuantity = 1;
-                updateTotalCost();
-                
-            } catch (error) {
-                showNotification('Transaction failed. Please try again.', 'error');
-                console.error('Purchase error:', error);
-            } finally {
-                button.textContent = originalText;
-                button.disabled = false;
+    const button = document.getElementById('buyTickets');
+    const originalText = button.textContent;
+    const totalCost = selectedPrice * ticketQuantity;
+
+    try {
+        // Initialize Web3 if not initialized
+        if (!web3) {
+            const initialized = await initWeb3();
+            if (!initialized) {
+                showNotification('Please install MetaMask!', 'error');
+                return;
             }
         }
+
+        // Check wallet connection
+        const isConnected = await checkWalletConnection();
+        if (!isConnected) return;
+
+        // Check balance
+        const hasBalance = await checkBalance(totalCost);
+        if (!hasBalance) return;
+
+        // Show loading state
+        button.innerHTML = '<span class="loading"></span> Processing...';
+        button.disabled = true;
+
+        // Get the current account
+        const accounts = await web3.eth.getAccounts();
+        const account = accounts[0];
+
+        // Prepare the transaction
+        const totalCostWei = web3.utils.toWei(totalCost.toString(), 'ether');
+
+        // Send transaction
+        try {
+            const transaction = await web3.eth.sendTransaction({
+                from: account,
+                to: '0x2d4e6a7F88b067f3f4B27e8f190839b16528eE52', // Replace with your contract address
+                value: totalCostWei,
+                gas: 21000 * ticketQuantity // Adjust gas based on your contract
+            });
+
+            // Add tickets to user's collection
+            for (let i = 0; i < ticketQuantity; i++) {
+                const ticketId = generateTicketId();
+                userTickets.push({
+                    id: ticketId,
+                    tier: selectedTier,
+                    price: selectedPrice
+                });
+            }
+
+            // Update UI
+            loadUserTickets();
+
+            // Show success modal with actual transaction hash
+            document.getElementById('txHash').textContent = `Tx: ${transaction.transactionHash}`;
+            document.getElementById('successModal').style.display = 'block';
+
+            // Show notification
+            showNotification('Tickets purchased successfully! 🎉', 'success');
+
+            // Reset form
+            document.getElementById('ticketQuantity').value = 1;
+            ticketQuantity = 1;
+            updateTotalCost();
+
+        } catch (error) {
+            console.error('Transaction error:', error);
+            showNotification('Transaction failed: ' + error.message, 'error');
+        }
+
+    } catch (error) {
+        console.error('Purchase error:', error);
+        showNotification('Error: ' + error.message, 'error');
+    } finally {
+        button.textContent = originalText;
+        button.disabled = false;
+    }
+}
 
         function loadUserTickets() {
             const ticketsList = document.getElementById('userTicketsList');

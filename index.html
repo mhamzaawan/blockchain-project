@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
     <title>CryptoLotto - Decentralized Lottery Platform</title>
     <style>
         * {
@@ -588,6 +589,69 @@
     <script>
         // Wallet connection
         let web3, userAccount, lotteryContract;
+
+
+
+// Initialize Web3 and Connect Wallet
+async function connectWallet() {
+    if (typeof window.ethereum !== 'undefined') {
+        try {
+            // Request account access
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            userAccount = accounts[0];
+            
+            // Initialize Web3
+            web3 = new Web3(window.ethereum);
+            
+            // Update button text and style
+            const walletBtn = document.getElementById('connectWallet');
+            walletBtn.textContent = `${userAccount.substring(0, 6)}...${userAccount.substring(38)}`;
+            walletBtn.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
+            
+            // Get and display wallet balance
+            const balance = await web3.eth.getBalance(userAccount);
+            const ethBalance = web3.utils.fromWei(balance, 'ether');
+            console.log(`Wallet connected! Balance: ${ethBalance} ETH`);
+            
+            // Get the current network
+            const networkId = await web3.eth.net.getId();
+            console.log(`Connected to network ID: ${networkId}`);
+            
+        } catch (error) {
+            console.error('Error connecting wallet:', error);
+            alert('Failed to connect wallet. Please try again.');
+        }
+    } else {
+        alert('Please install MetaMask to use this dApp!');
+    }
+}
+
+// Handle account changes
+if (typeof window.ethereum !== 'undefined') {
+    window.ethereum.on('accountsChanged', async (accounts) => {
+        if (accounts.length === 0) {
+            // User disconnected their wallet
+            document.getElementById('connectWallet').textContent = 'Connect Wallet';
+            document.getElementById('connectWallet').style.background = 'linear-gradient(45deg, #ff6b6b, #ffa726)';
+            userAccount = null;
+        } else {
+            // User switched accounts
+            userAccount = accounts[0];
+            document.getElementById('connectWallet').textContent = 
+                `${userAccount.substring(0, 6)}...${userAccount.substring(38)}`;
+        }
+    });
+
+    // Handle network changes
+    window.ethereum.on('chainChanged', (_chainId) => {
+        window.location.reload();
+    });
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('connectWallet').addEventListener('click', connectWallet);
+});
 
         document.getElementById('connectWallet').addEventListener('click', async () => {
             if (typeof window.ethereum !== 'undefined') {
