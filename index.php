@@ -1,3 +1,9 @@
+<?php
+session_start();
+$isLoggedIn = isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true;
+$username = $isLoggedIn ? $_SESSION["username"] : "";
+$currentDateTime = date("Y-m-d H:i:s"); // Get current UTC time
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -425,22 +431,139 @@
             font-size: 2rem;
             color: #ffa726;
         }
+
+        .auth-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.auth-buttons a {
+    text-decoration: none;
+}
+
+.welcome-user {
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    color: white;
+    font-weight: bold;
+}
+
+/* Add to your existing style section */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin: 15% auto;
+    padding: 40px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: modalSlideDown 0.3s ease-out;
+}
+
+@keyframes modalSlideDown {
+    from {
+        transform: translateY(-100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-content h2 {
+    color: #ffa726;
+    margin-bottom: 20px;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.modal-btn {
+    padding: 12px 24px;
+    border-radius: 25px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.modal-btn.primary {
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.modal-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.modal-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.time-display {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px 20px;
+    border-radius: 25px;
+    backdrop-filter: blur(10px);
+    color: white;
+    font-size: 0.9rem;
+    z-index: 1000;
+}
     </style>
 </head>
 <body>
     <!-- Header -->
     <header>
         <nav class="container">
-            <div class="logo">🎰 CryptoLotto</div>
-            <ul class="nav-links">
-                <li><a href="#home">Home</a></li>
-                <li><a href="pages/lottery.html">Lottery</a></li>
-                <li><a href="pages/history.html">History</a></li>
-                <li><a href="pages/referrals.html">Referrals</a></li>
-                <li><a href="pages/winners.html">Winners</a></li>
-            </ul>
-            <button class="wallet-btn" id="connectWallet">Connect Wallet</button>
-        </nav>
+    <div class="logo">🎰 CryptoLotto</div>
+    <ul class="nav-links">
+        <li><a href="#home">Home</a></li>
+        <li><a href="pages/lottery.php" onclick="checkLoginAndRedirect(event)">Lottery</a></li>
+        <li><a href="pages/history.html">History</a></li>
+        <li><a href="pages/referrals.html">Referrals</a></li>
+        <li><a href="pages/winners.html">Winners</a></li>
+    </ul>
+    <div class="auth-buttons" style="display: flex; gap: 10px; align-items: center;">
+    <?php if($isLoggedIn): ?>
+        <span class="wallet-btn" style="background: linear-gradient(45deg, #4CAF50, #45a049);">Welcome, 
+            <?php echo htmlspecialchars($username); ?>
+        </span>
+        <a href="logout.php" class="wallet-btn" style="background: linear-gradient(45deg, #ff6b6b, #ffa726);">Logout</a>
+    <?php else: ?>
+        <a href="register.php" class="wallet-btn" style="background: linear-gradient(45deg, #4CAF50, #45a049);">Register</a>
+        <a href="login.php" class="wallet-btn">Login</a>
+    <?php endif; ?>
+    <button class="wallet-btn" id="connectWallet">Connect Wallet</button>
+</div>
+</nav>
     </header>
 
     <!-- Hero Section -->
@@ -449,9 +572,9 @@
             <h1>Win Big with CryptoLotto</h1>
             <p>The most transparent and fair decentralized lottery on the blockchain. Multiple winners, tiered pricing, and automated draws!</p>
             <div class="cta-buttons">
-                <a href="pages/lottery.html" class="btn-primary">
-                    🎫 Buy Tickets Now
-                </a>
+                <a href="pages/lottery.html" class="btn-primary" onclick="checkLoginAndRedirect(event)">
+    🎫 Buy Tickets Now
+</a>
                 <a href="#features" class="btn-secondary">
                     📖 Learn More
                 </a>
@@ -510,7 +633,9 @@
                     </div>
                 </div>
 
-                <a href="pages/lottery.html" class="btn-primary">🎫 Join This Round</a>
+<a href="pages/lottery.html" class="btn-primary" onclick="checkLoginAndRedirect(event)">
+    🎫 Join This Round
+</a>
             </div>
         </div>
     </section>
@@ -740,6 +865,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+
+        // Add to your existing script section
+function checkLoginAndRedirect(event) {
+    const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
+    if (!isLoggedIn) {
+        event.preventDefault();
+        document.getElementById('loginModal').style.display = 'block';
+    }
+}
+
+function closeModal() {
+    document.getElementById('loginModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('loginModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Update current time every second
+function updateTime() {
+    const timeDisplay = document.querySelector('.time-display');
+    const now = new Date();
+    const utcString = now.toISOString().replace('T', ' ').slice(0, 19);
+    timeDisplay.textContent = utcString + ' UTC';
+}
+
+setInterval(updateTime, 1000);
     </script>
+
+    <!-- Login Required Modal -->
+<div id="loginModal" class="modal">
+    <div class="modal-content">
+        <h2>🔒 Login Required</h2>
+        <p>Please login to buy lottery tickets!</p>
+        <div class="modal-buttons">
+            <button class="modal-btn primary" onclick="window.location.href='login.php'">Login Now</button>
+            <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Time Display -->
+<div class="time-display">
+    <?php echo $currentDateTime; ?> UTC
+</div>
 </body>
 </html>

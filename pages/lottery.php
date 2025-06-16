@@ -540,8 +540,8 @@
         <nav class="container">
             <div class="logo">🎰 CryptoLotto</div>
             <ul class="nav-links">
-                <li><a href="../index.html">Home</a></li>
-                <li><a href="lottery.html" style="color: #ffa726;">Lottery</a></li>
+                <li><a href="../index.php">Home</a></li>
+                <li><a href="lottery.php" style="color: #ffa726;">Lottery</a></li>
                 <li><a href="history.html">History</a></li>
                 <li><a href="referrals.html">Referrals</a></li>
                 <li><a href="winners.html">Winners</a></li>
